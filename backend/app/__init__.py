@@ -1,0 +1,1 @@
+"""CurriculaPath backend package."""
