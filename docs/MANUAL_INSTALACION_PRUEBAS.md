@@ -154,7 +154,7 @@ Resultado esperado:
 - Login asesor OK.
 - Diagnóstico OCR accesible.
 
-Si OCR aparece como pendiente por Tesseract, no es un fallo crítico. Solo significa que los PDFs escaneados como imagen necesitan instalar OCR local.
+Si OCR aparece como pendiente por Tesseract, no es un fallo crítico. Solo significa que los PDFs escaneados o fotos/capturas de malla necesitan instalar OCR local.
 
 ## 7. Prueba completa automatizada
 
@@ -224,7 +224,7 @@ Entra como administrador y revisa:
    - Crear/editar usuario, programa, materia o versión.
 2. `/admin/cargar-pdf`
    - Subir `docs/demo-assets/malla_sistemas_texto_demo.pdf`.
-   - Procesar PDF.
+   - Procesar archivo.
    - Revisar texto extraído.
    - Revisar materias detectadas.
    - Revisar dependencias detectadas.
@@ -389,7 +389,7 @@ npm.cmd run dev:stack
 
 ### OCR pendiente
 
-No bloquea el sistema. Solo instala Tesseract si necesitas procesar PDFs escaneados como imagen.
+No bloquea el sistema. Solo instala Tesseract si necesitas procesar PDFs escaneados o fotos/capturas de malla.
 
 ### LLM local no conectado
 

@@ -53,7 +53,7 @@ Recorrido:
 2. Pestaña Estado sistema.
 3. Gestión de usuarios, programas, materias, versiones y dependencias.
 4. Carga PDF.
-5. Procesar PDF con texto.
+5. Procesar PDF o imagen de malla.
 6. Revisar materias/dependencias detectadas.
 7. Aprobar grafo.
 

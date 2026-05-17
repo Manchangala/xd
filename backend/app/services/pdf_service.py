@@ -32,11 +32,44 @@ from app.services.pdf_processing import (
 
 settings = get_settings()
 
+ALLOWED_UPLOAD_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+ALLOWED_UPLOAD_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp"}
+EXTENSION_BY_CONTENT_TYPE = {
+    "application/pdf": ".pdf",
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+}
 
-def _document_path(document_id: str) -> Path:
+
+def _is_allowed_curriculum_file(file: UploadFile) -> bool:
+    content_type = (file.content_type or "").lower()
+    suffix = Path(file.filename or "").suffix.lower()
+    return content_type in ALLOWED_UPLOAD_TYPES or suffix in ALLOWED_UPLOAD_EXTENSIONS
+
+
+def _document_extension(file: UploadFile | CurriculumDocument) -> str:
+    content_type = (
+        getattr(file, "content_type", None)
+        or getattr(file, "tipo_archivo", "")
+        or ""
+    ).lower()
+    filename = getattr(file, "filename", None) or getattr(file, "nombre_archivo", "") or ""
+    suffix = Path(filename).suffix.lower()
+    if suffix in ALLOWED_UPLOAD_EXTENSIONS:
+        return suffix
+    return EXTENSION_BY_CONTENT_TYPE.get(content_type, ".pdf")
+
+
+def _document_path(document_id: str, extension: str = ".pdf") -> Path:
     storage_dir = Path(settings.document_storage_dir)
     storage_dir.mkdir(parents=True, exist_ok=True)
-    return storage_dir / f"{document_id}.pdf"
+    return storage_dir / f"{document_id}{extension}"
 
 
 def _raise_graph_validation_error(detail: str) -> None:
@@ -65,18 +98,19 @@ def _would_create_prerequisite_cycle(
 
 
 def upload_pdf(db: Session, file: UploadFile, program_id: str) -> CurriculumDocument:
-    if file.content_type != "application/pdf":
+    if not _is_allowed_curriculum_file(file):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Solo se permiten archivos PDF",
+            detail="Solo se permiten archivos PDF o imágenes JPG, PNG y WebP",
         )
     if not db.get(Program, program_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Programa no encontrado")
+    extension = _document_extension(file)
     document = CurriculumDocument(
         id=f"doc_{uuid4().hex[:10]}",
         programa_id=program_id,
-        nombre_archivo=file.filename or "malla.pdf",
-        tipo_archivo=file.content_type,
+        nombre_archivo=file.filename or f"malla{extension}",
+        tipo_archivo=file.content_type or "application/octet-stream",
         estado_procesamiento=DocumentProcessingStatus.PENDIENTE,
         porcentaje_progreso=0,
         fecha_carga=datetime.now(timezone.utc),
@@ -84,7 +118,7 @@ def upload_pdf(db: Session, file: UploadFile, program_id: str) -> CurriculumDocu
     db.add(document)
     db.commit()
     db.refresh(document)
-    _document_path(document.id).write_bytes(file.file.read())
+    _document_path(document.id, extension).write_bytes(file.file.read())
     return document
 
 
@@ -92,7 +126,11 @@ def process_pdf(db: Session, document_id: str) -> PdfProcessResponse:
     document = db.get(CurriculumDocument, document_id)
     if not document:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento no encontrado")
-    path = _document_path(document.id)
+    path = _document_path(document.id, _document_extension(document))
+    if not path.exists():
+        legacy_path = _document_path(document.id)
+        if legacy_path.exists():
+            path = legacy_path
     if not path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -111,7 +149,7 @@ def process_pdf(db: Session, document_id: str) -> PdfProcessResponse:
         db.commit()
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="No se pudo leer el PDF cargado",
+            detail="No se pudo leer el archivo cargado",
         ) from exc
     document.estado_procesamiento = (
         DocumentProcessingStatus.OCR

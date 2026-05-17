@@ -3,6 +3,8 @@ import { pdfIngestionService } from '@/features/pdf-ingestion/services/pdfIngest
 import { STORAGE_KEYS } from '@/lib/constants'
 
 const pdf = (name: string) => new File(['%PDF-1.4'], name, { type: 'application/pdf' })
+const image = (name: string) =>
+  new File(['fake-image'], name, { type: 'image/png' })
 
 describe('pdfIngestionService mock mode', () => {
   beforeEach(() => {
@@ -26,7 +28,7 @@ describe('pdfIngestionService mock mode', () => {
     expect(result.courses).toEqual([])
     expect(result.dependencies).toEqual([])
     expect(result.diagnostics.recommendedAction).toBe('install_ocr_and_retry')
-    expect(result.diagnostics.message).toContain('no se lee el PDF real')
+    expect(result.diagnostics.message).toContain('no se lee el contenido real')
   })
 
   it('solo devuelve detecciones simuladas cuando el archivo se marca explicitamente como demo', async () => {
@@ -40,5 +42,19 @@ describe('pdfIngestionService mock mode', () => {
     expect(result.document.estadoProcesamiento).toBe('validando')
     expect(result.courses.length).toBeGreaterThan(0)
     expect(result.diagnostics.message).toContain('Resultado demo')
+  })
+
+  it('acepta fotos o capturas de la malla para el flujo OCR', async () => {
+    const uploaded = await pdfIngestionService.uploadPdf(
+      image('foto-malla-demo.png'),
+      'prog_systems',
+    )
+
+    const result = await pdfIngestionService.processPdf(uploaded.id)
+
+    expect(uploaded.tipoArchivo).toBe('image/png')
+    expect(result.extraction.metodoExtraccion).toBe('ocr_imagen')
+    expect(result.diagnostics.scannedLike).toBe(true)
+    expect(result.courses.length).toBeGreaterThan(0)
   })
 })

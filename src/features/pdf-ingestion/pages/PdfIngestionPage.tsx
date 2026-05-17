@@ -25,15 +25,49 @@ import type {
 } from '@/types/pdf'
 
 const pipeline = [
-  'PDF cargado',
+  'Archivo cargado',
   'Extracción de texto',
-  'OCR si el PDF es imagen',
+  'OCR si es imagen o escaneo',
   'Procesamiento de materias',
   'Detección de prerrequisitos/correquisitos',
   'Construcción del grafo',
   'Validación manual',
   'Guardado como malla',
 ]
+
+const acceptedCurriculumFileTypes = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]
+
+const acceptedCurriculumFileExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webp']
+
+const acceptedFileInput = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  '.pdf',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+].join(',')
+
+const unsupportedFileMessage =
+  'Solo se permiten archivos PDF o imágenes JPG, PNG y WebP'
+
+const isSupportedCurriculumFile = (selectedFile: File) => {
+  const lowerName = selectedFile.name.toLowerCase()
+  return (
+    acceptedCurriculumFileTypes.includes(selectedFile.type) ||
+    acceptedCurriculumFileExtensions.some((extension) =>
+      lowerName.endsWith(extension),
+    )
+  )
+}
 
 interface ReviewCourse extends DetectedCourse {
   id: string
@@ -193,7 +227,7 @@ export function PdfIngestionPage() {
 
   const uploadAndProcess = useMutation({
     mutationFn: async () => {
-      if (!file) throw new Error('Selecciona un PDF')
+      if (!file) throw new Error('Selecciona un PDF o una imagen')
       setError(null)
       const uploaded = await pdfIngestionService.uploadPdf(file, programId)
       setCurrentDocumentId(uploaded.id)
@@ -220,7 +254,7 @@ export function PdfIngestionPage() {
         title:
           dataSource === 'mock'
             ? 'Resultado demo generado'
-            : 'PDF procesado',
+            : 'Archivo procesado',
         description:
           dataSource === 'mock'
             ? 'Las detecciones pertenecen al modo demo y no al archivo cargado.'
@@ -241,7 +275,8 @@ export function PdfIngestionPage() {
     onSuccess: () =>
       pushToast({
         title: 'Reintento completado',
-        description: 'El mismo PDF se procesó nuevamente con la configuración actual.',
+        description:
+          'El mismo archivo se procesó nuevamente con la configuración actual.',
       }),
     onError: (mutationError) =>
       setError(mutationError instanceof Error ? mutationError.message : 'Error'),
@@ -323,7 +358,7 @@ export function PdfIngestionPage() {
         processingResult.extraction.metodoExtraccion === 'ocr_imagen' &&
         !processingResult.extraction.textoExtraido.trim() &&
         !ocrStatus.data?.available
-          ? 'OCR local no disponible para procesar PDFs escaneados'
+          ? 'OCR local no disponible para procesar imágenes o PDFs escaneados'
           : null,
       ].filter((issue): issue is string => Boolean(issue))
     : []
@@ -349,9 +384,9 @@ export function PdfIngestionPage() {
   return (
     <>
       <PageHeader
-        eyebrow="PDF / OCR"
-        title="Carga inteligente de PDF de malla"
-        description="Extracción local real, revisión humana y persistencia del grafo sobre la malla seleccionada."
+        eyebrow="PDF / imagen / OCR"
+        title="Carga inteligente de malla curricular"
+        description="Sube un PDF, captura o foto de la malla; el flujo extrae texto, usa OCR cuando aplica y prepara el grafo para revisión."
       />
       <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
         <Card>
@@ -359,8 +394,8 @@ export function PdfIngestionPage() {
             <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
               <p className="font-semibold">Modo demo/local activo</p>
               <p className="mt-1">
-                En este modo no se lee el contenido real del PDF. Para procesar una
-                malla escaneada o una captura como la que subiste, cambia la fuente
+                En este modo no se lee el contenido real del archivo. Para procesar una
+                malla escaneada, foto o captura como la que subiste, cambia la fuente
                 de datos a API real y configura OCR local.
               </p>
             </div>
@@ -371,8 +406,9 @@ export function PdfIngestionPage() {
             onDrop={(event) => {
               event.preventDefault()
               const dropped = event.dataTransfer.files[0]
-              if (dropped?.type !== 'application/pdf') {
-                setError('Solo se permiten archivos PDF')
+              if (!dropped) return
+              if (dropped && !isSupportedCurriculumFile(dropped)) {
+                setError(unsupportedFileMessage)
                 return
               }
               setFile(dropped)
@@ -387,16 +423,16 @@ export function PdfIngestionPage() {
             }}
           >
             <UploadCloud className="mx-auto h-8 w-8 text-brand-700" />
-            <p className="mt-3 font-semibold">Arrastra tu PDF aquí</p>
+            <p className="mt-3 font-semibold">Arrastra tu PDF o imagen aquí</p>
             <p className="mt-1 text-sm text-slate-500">o selecciónalo manualmente</p>
             <input
               className="mt-4 block w-full text-sm"
               type="file"
-              accept="application/pdf"
+              accept={acceptedFileInput}
               onChange={(event) => {
                 const selected = event.target.files?.[0] ?? null
-                if (selected && selected.type !== 'application/pdf') {
-                  setError('Solo se permiten archivos PDF')
+                if (selected && !isSupportedCurriculumFile(selected)) {
+                  setError(unsupportedFileMessage)
                   return
                 }
                 setFile(selected)
@@ -446,7 +482,7 @@ export function PdfIngestionPage() {
                 onClick={() => uploadAndProcess.mutate()}
                 disabled={!file || !programId || !versionId || uploadAndProcess.isPending}
               >
-                Procesar PDF
+                Procesar archivo
               </Button>
               <Button
                 variant="outline"
@@ -594,8 +630,8 @@ export function PdfIngestionPage() {
                 <p className="font-semibold">Diagnóstico de procesamiento</p>
                 <Badge>
                   {processingResult.diagnostics.scannedLike
-                    ? 'PDF escaneado'
-                    : 'PDF con texto'}
+                    ? 'Imagen o escaneo'
+                    : 'Documento con texto'}
                 </Badge>
               </div>
               <p className="mt-3 text-slate-600 dark:text-slate-300">
@@ -663,7 +699,7 @@ export function PdfIngestionPage() {
               {reviewCourses.length === 0 ? (
                 <EmptyState
                   title="No hay materias detectadas"
-                  description="El sistema no debe inventar materias. Cambia a API real con OCR o agrega materias manualmente en la revision."
+                  description="El sistema no debe inventar materias. Cambia a API real con OCR o agrega materias manualmente en la revisión."
                 />
               ) : (
               <table className="w-full min-w-[36rem] text-left text-sm">
@@ -810,7 +846,7 @@ export function PdfIngestionPage() {
             <div className="mt-4">
               <EmptyState
                 title="Sin detecciones aún"
-                description="Procesa un PDF para revisar las materias encontradas."
+                description="Procesa un PDF o imagen para revisar las materias encontradas."
               />
             </div>
           )}
@@ -996,7 +1032,7 @@ export function PdfIngestionPage() {
           ) : (
             <EmptyState
               title="Grafo pendiente"
-              description="La vista previa aparecerá cuando el PDF se convierta a grafo."
+              description="La vista previa aparecerá cuando el archivo se convierta a grafo."
             />
           )}
         </Card>

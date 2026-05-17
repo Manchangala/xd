@@ -79,7 +79,7 @@ test('administrador puede abrir el diagnóstico OCR de la carga PDF', async ({ p
   await page.goto('/admin/cargar-pdf')
 
   await expect(
-    page.getByRole('heading', { name: 'Carga inteligente de PDF de malla' }),
+    page.getByRole('heading', { name: 'Carga inteligente de malla curricular' }),
   ).toBeVisible()
   await expect(page.getByText('OCR local', { exact: true })).toBeVisible()
   await expect(

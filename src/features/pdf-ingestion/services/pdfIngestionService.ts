@@ -25,9 +25,31 @@ const isExplicitDemoFile = (fileName: string) =>
   )
 
 const isImageLikeFile = (fileName: string) =>
-  ['imagen', 'captura', 'screenshot', 'escanead', 'scan'].some((token) =>
+  ['imagen', 'foto', 'captura', 'screenshot', 'escanead', 'scan'].some((token) =>
     fileName.includes(token),
   )
+
+const acceptedCurriculumFileTypes = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]
+
+const acceptedCurriculumFileExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webp']
+
+const unsupportedFileMessage =
+  'Solo se permiten archivos PDF o imágenes JPG, PNG y WebP'
+
+const isSupportedCurriculumFile = (file: File) => {
+  const normalizedName = file.name.toLowerCase()
+  return (
+    acceptedCurriculumFileTypes.includes(file.type) ||
+    acceptedCurriculumFileExtensions.some((extension) =>
+      normalizedName.endsWith(extension),
+    )
+  )
+}
 
 export const pdfIngestionService = {
   getOcrStatus() {
@@ -59,8 +81,8 @@ export const pdfIngestionService = {
       )
     }
     return mockAdapter(() => {
-      if (file.type !== 'application/pdf') {
-        throw new Error('Solo se permiten archivos PDF')
+      if (!isSupportedCurriculumFile(file)) {
+        throw new Error(unsupportedFileMessage)
       }
       const documents = readStorage<DocumentoMalla[]>(STORAGE_KEYS.documents, [])
       const document: DocumentoMalla = {
@@ -100,7 +122,8 @@ export const pdfIngestionService = {
       const hasNoText = normalizedName.includes('sin-texto')
       const hasMissingCode = normalizedName.includes('sin-codigo')
       const isDemo = isExplicitDemoFile(normalizedName)
-      const isImageLike = isImageLikeFile(normalizedName)
+      const isImageLike =
+        isImageLikeFile(normalizedName) || currentDocument.tipoArchivo.startsWith('image/')
       const shouldReturnDemoDetections = isDemo && !hasNoText
 
       const next = documents.map((item) =>
@@ -120,7 +143,7 @@ export const pdfIngestionService = {
         id: uid('extract'),
         documentoMallaId: documentId,
         textoExtraido: shouldReturnDemoDetections
-          ? 'Texto demo simulado: se detectaron materias, créditos, semestres y dependencias de ejemplo. Este resultado no proviene del PDF cargado.'
+          ? 'Texto demo simulado: se detectaron materias, créditos, semestres y dependencias de ejemplo. Este resultado no proviene del archivo cargado.'
           : '',
         metodoExtraccion: isImageLike ? 'ocr_imagen' : 'mixto',
         confianzaOcr: shouldReturnDemoDetections ? (isImageLike ? 0.78 : 0.91) : 0,
@@ -176,14 +199,14 @@ export const pdfIngestionService = {
         recommendedAction:
           !shouldReturnDemoDetections && isImageLike
             ? 'install_ocr_and_retry'
-            : !shouldReturnDemoDetections
-              ? 'manual_review'
-              : 'review',
+          : !shouldReturnDemoDetections
+            ? 'manual_review'
+            : 'review',
         message: shouldReturnDemoDetections
-          ? 'Resultado demo generado en modo local. Úsalo solo para probar la interfaz; no proviene del PDF cargado.'
+          ? 'Resultado demo generado en modo local. Úsalo solo para probar la interfaz; no proviene del archivo cargado.'
           : isImageLike
-            ? 'El archivo parece ser una captura o PDF escaneado. En modo local/mock no se lee el PDF real; cambia a API real y configura OCR local para procesarlo.'
-            : 'En modo local/mock no se lee el contenido real del PDF. Cambia a API real para extraer texto y detectar materias desde el archivo.',
+            ? 'El archivo parece ser una captura, foto o PDF escaneado. En modo local/mock no se lee el contenido real; cambia a API real y configura OCR local para procesarlo.'
+            : 'En modo local/mock no se lee el contenido real del archivo. Cambia a API real para extraer texto y detectar materias.',
       }
 
       return {

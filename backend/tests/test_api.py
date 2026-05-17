@@ -240,6 +240,36 @@ def test_scanned_pdf_without_ocr_recommends_retry(monkeypatch) -> None:
     assert diagnostics["recommendedAction"] == "install_ocr_and_retry"
 
 
+def test_curriculum_image_upload_enters_ocr_pipeline(monkeypatch) -> None:
+    import app.services.pdf_processing as pdf_processing
+
+    monkeypatch.setattr(pdf_processing.shutil, "which", lambda _: None)
+    headers = _login("admin@curriculapath.edu")
+    png_1x1 = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/aMcAAAAASUVORK5CYII=",
+    )
+
+    upload = client.post(
+        "/api/v1/admin/curriculum-documents/upload",
+        data={"program_id": "prog_systems"},
+        files={"file": ("foto-malla.png", png_1x1, "image/png")},
+        headers=headers,
+    )
+    assert upload.status_code == 200
+    assert upload.json()["tipoArchivo"] == "image/png"
+    document_id = upload.json()["id"]
+
+    processed = client.post(
+        f"/api/v1/admin/curriculum-documents/{document_id}/process",
+        headers=headers,
+    )
+    assert processed.status_code == 200
+    payload = processed.json()
+    assert payload["extraction"]["metodoExtraccion"] == "ocr_imagen"
+    assert payload["diagnostics"]["scannedLike"] is True
+    assert payload["diagnostics"]["recommendedAction"] == "install_ocr_and_retry"
+
+
 def test_pdf_graph_approval_rejects_invalid_review_payloads() -> None:
     headers = _login("admin@curriculapath.edu")
     suffix = uuid4().int % 900 + 100

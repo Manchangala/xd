@@ -17,6 +17,7 @@ from app.schemas.pdf import (
 )
 
 CODE_PATTERN = r"[A-Z]{2,6}\s*\d{2,5}"
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 @dataclass(slots=True)
@@ -86,6 +87,34 @@ def _try_ocr(page: pymupdf.Page, language: str | None) -> str:
         return ""
 
 
+def _extract_image_text(
+    path: Path,
+    ocr_language: str | None,
+    ocr_available: bool,
+) -> PdfExtractionResult:
+    page_text = ""
+    with pymupdf.open() as document:
+        page = document.new_page(width=595, height=842)
+        page.insert_image(page.rect, filename=str(path), keep_proportion=True)
+        page_text = _try_ocr(page, ocr_language)
+
+    return PdfExtractionResult(
+        text=page_text,
+        method=ExtractionMethod.OCR_IMAGEN,
+        confidence=0.78 if page_text else 0.0,
+        pages=[
+            ExtractedPage(
+                number=1,
+                text=page_text,
+                used_ocr=bool(page_text),
+            ),
+        ],
+        scanned_like=True,
+        ocr_available=ocr_available,
+        ocr_language_used=ocr_language,
+    )
+
+
 def get_ocr_status() -> OcrStatusResponse:
     engine_path = shutil.which("tesseract")
     if not engine_path:
@@ -127,7 +156,7 @@ def get_ocr_status() -> OcrStatusResponse:
         issues=issues,
         next_steps=next_steps,
         message=(
-            "OCR local listo para PDFs escaneados."
+            "OCR local listo para PDFs escaneados e imágenes de malla."
             if spanish_available
             else "OCR local detectado, pero falta el idioma español."
         ),
@@ -145,6 +174,13 @@ def extract_pdf_text(path: Path) -> PdfExtractionResult:
         if engine_path
         else None
     )
+
+    if path.suffix.lower() in IMAGE_EXTENSIONS:
+        return _extract_image_text(
+            path=path,
+            ocr_language=ocr_language,
+            ocr_available=bool(engine_path),
+        )
 
     with pymupdf.open(path) as document:
         for index, page in enumerate(document, start=1):
@@ -214,7 +250,7 @@ def build_processing_diagnostics(
     if can_retry_with_ocr:
         recommended_action = "install_ocr_and_retry"
         message = (
-            "El documento parece escaneado como imagen y no se pudo aplicar OCR local. "
+            "El documento parece ser imagen o escaneo y no se pudo aplicar OCR local. "
             "Instala o configura el motor OCR y vuelve a procesar este mismo archivo."
         )
     elif extraction.scanned_like and not extraction.text:
@@ -231,7 +267,7 @@ def build_processing_diagnostics(
     else:
         recommended_action = "review"
         message = (
-            "Se extrajo texto del PDF. Revisa las materias y dependencias antes de guardar."
+            "Se extrajo texto del archivo. Revisa las materias y dependencias antes de guardar."
         )
 
     return PdfProcessingDiagnostics(

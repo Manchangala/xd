@@ -294,6 +294,16 @@ Estados posibles por chequeo: `ok`, `warning`, `error`. Los identificadores actu
 - `POST /admin/curriculum-documents/:id/approve-graph`
 - `GET /admin/ocr/status`
 
+
+**Upload request**
+
+`multipart/form-data`
+
+- `file`: PDF, JPG, JPEG, PNG o WebP.
+- `program_id`: identificador del programa.
+
+Si el archivo es imagen o PDF escaneado, el backend lo procesa por el camino OCR. Si no hay OCR local disponible, debe responder con diagnóstico claro y bloquear el guardado automático del grafo hasta revisión manual.
+
 **Upload response**
 ```json
 {
@@ -338,7 +348,7 @@ Estados posibles por chequeo: `ok`, `warning`, `error`. Los identificadores actu
     "ocrLanguageUsed": null,
     "canRetryWithOcr": false,
     "recommendedAction": "review",
-    "message": "Se extrajo texto del PDF. Revisa las materias y dependencias antes de guardar."
+    "message": "Se extrajo texto del archivo. Revisa las materias y dependencias antes de guardar."
   }
 }
 ```

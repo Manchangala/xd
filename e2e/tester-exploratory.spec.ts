@@ -148,6 +148,6 @@ test('tester: administración cubre versiones, dependencias y archivo PDF invál
     mimeType: 'text/plain',
     buffer: Buffer.from('esto no es un pdf'),
   })
-  await expect(page.getByText('Solo se permiten archivos PDF')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Procesar PDF' })).toBeDisabled()
+  await expect(page.getByText('Solo se permiten archivos PDF o imágenes JPG, PNG y WebP')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Procesar archivo' })).toBeDisabled()
 })

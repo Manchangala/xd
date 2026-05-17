@@ -1,6 +1,6 @@
 # OCR local en Windows para CurriculaPath
 
-La carga de PDFs con texto ya funciona sin configuración adicional. Esta guía solo aplica si quieres procesar **PDFs escaneados como imagen**.
+La carga de PDFs con texto ya funciona sin configuración adicional. Esta guía solo aplica si quieres procesar **PDFs escaneados, fotos o capturas de malla**.
 
 ## Objetivo
 

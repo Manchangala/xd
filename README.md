@@ -164,34 +164,31 @@ Los mocks persisten temporalmente en `localStorage`.
 4. En modo `api`, los servicios usan `src/lib/api/apiClient.ts` contra el backend con prefijo `/api/v1`.
 5. El contrato vivo est? en `docs/API_CONTRACT.md`.
 
-## Módulo PDF / OCR
+## Módulo PDF / imagen / OCR
 
 La pantalla `/admin/cargar-pdf` incluye:
 
-- Drag & drop
-- Validación de PDF
-- Selector de programa y versión
-- Pipeline visual
-- Extracción real de texto PDF local
-- Tablas de materias y dependencias detectadas
-- Vista previa de grafo
-- Corrección manual antes de aprobar
-- Persistencia real de materias y dependencias en la versión de malla seleccionada
-- Validación backend de códigos duplicados, dependencias inválidas y ciclos antes de guardar
-- Diagnóstico visible de disponibilidad OCR local con problemas detectados y próximos pasos
-- Diagnóstico por documento procesado: páginas con texto nativo, páginas leídas por OCR y páginas sin texto
-- Reintento de OCR sobre el mismo archivo cuando el documento parece escaneado y el motor local aún no estaba disponible
-- Estados de error previstos
+- Drag & drop para PDF, JPG, JPEG, PNG y WebP.
+- Validación de tipo de archivo antes de procesar.
+- Selector de programa y versión.
+- Pipeline visual para extracción, OCR, detección de materias/dependencias y construcción del grafo.
+- Extracción real de texto desde PDF con texto nativo.
+- Entrada directa al flujo OCR cuando el archivo es una foto, captura o PDF escaneado.
+- Tablas de materias y dependencias detectadas.
+- Vista previa de grafo.
+- Corrección manual antes de aprobar.
+- Persistencia real de materias y dependencias en la versión de malla seleccionada.
+- Validación backend de códigos duplicados, dependencias inválidas y ciclos antes de guardar.
+- Diagnóstico visible de disponibilidad OCR local con problemas detectados y próximos pasos.
+- Diagnóstico por documento procesado: páginas con texto nativo, páginas leídas por OCR y páginas sin texto.
+- Reintento de OCR sobre el mismo archivo cuando el documento parece escaneado y el motor local aún no estaba disponible.
+- Estados de error previstos.
 
-Cuando un PDF viene escaneado como imagen, el backend deja listo el flujo para OCR local. Si Tesseract está instalado en el equipo, PyMuPDF puede usarlo; si no, el documento queda marcado para revisión/error sin depender de servicios cloud.
+Cuando el archivo viene como imagen o escaneo, el backend deja listo el flujo para OCR local. Si Tesseract está instalado en el equipo, PyMuPDF puede usarlo; si no, el documento queda marcado para revisión/error sin depender de servicios cloud.
 
-Si primero procesas un PDF escaneado sin tener OCR listo, no hace falta volver a subirlo: instala o configura OCR, pulsa **Actualizar diagnóstico** y luego **Reintentar OCR** sobre el mismo documento.
+Si primero procesas una foto, captura o PDF escaneado sin tener OCR listo, no hace falta volver a subirlo: instala o configura OCR, pulsa **Actualizar diagnóstico** y luego **Reintentar OCR** sobre el mismo documento.
 
 La guía práctica para habilitar OCR local en Windows está en `docs/OCR_WINDOWS.md`.
-
-Si el equipo solo tiene inglés instalado para OCR, el backend puede degradar de forma segura y usar ese idioma; para mallas en español, `spa` sigue siendo la configuración recomendada.
-
-Los PDFs de prueba controlados se generan con `npm run demo:pdfs` y quedan en `docs/demo-assets/`.
 
 ## Módulo Chat / RAG
 

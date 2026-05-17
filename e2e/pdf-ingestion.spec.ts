@@ -57,10 +57,10 @@ test('PDF escaneado sin OCR no inventa materias ni permite guardar grafo', async
     mimeType: 'application/pdf',
     buffer: Buffer.from(scannedPdfBase64, 'base64'),
   })
-  await page.getByRole('button', { name: 'Procesar PDF' }).click()
+  await page.getByRole('button', { name: 'Procesar archivo' }).click()
 
   await expect(page.getByText('No hay materias detectadas')).toBeVisible({ timeout: 15000 })
-  await expect(page.getByText('OCR local no disponible para procesar PDFs escaneados')).toBeVisible()
+  await expect(page.getByText('OCR local no disponible para procesar imágenes o PDFs escaneados')).toBeVisible()
   await expect(page.getByText('MAT101')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Aprobar' })).toBeDisabled()
   await expect(page.getByRole('button', { name: 'Guardar grafo' })).toBeDisabled()
@@ -80,7 +80,7 @@ test('PDF con texto real detecta materias y permite guardar grafo revisado', asy
       `${courseA} | Seminario de Pruebas | 3 | 1\n${courseB} | Laboratorio de Validacion | 3 | 2\n${courseA} -> ${courseB}`,
     ),
   })
-  await page.getByRole('button', { name: 'Procesar PDF' }).click()
+  await page.getByRole('button', { name: 'Procesar archivo' }).click()
 
   await expect(page.getByRole('cell', { name: courseA })).toBeVisible({ timeout: 15000 })
   await expect(page.getByRole('cell', { name: courseB })).toBeVisible()

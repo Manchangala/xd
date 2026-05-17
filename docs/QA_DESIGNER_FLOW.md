@@ -271,28 +271,31 @@ Resultado esperado:
 - La tabla debe actualizarse.
 - No debe aparecer información duplicada de forma confusa.
 
-### 5.2 Carga PDF / OCR / grafo
+### 5.2 Carga PDF / imagen / OCR / grafo
 
 Ruta: `/admin/cargar-pdf`
 
 Acciones:
 
-1. Subir un PDF escaneado o captura.
-2. Pulsar “Procesar PDF”.
-3. Revisar diagnóstico.
-4. Verificar que no invente materias si no puede leer el PDF.
-5. Subir un PDF con texto real.
-6. Procesar.
-7. Revisar materias detectadas.
-8. Revisar dependencias detectadas.
-9. Pulsar “Aprobar”.
-10. Pulsar “Guardar grafo”.
+1. Subir un PDF escaneado, una captura o una foto de la malla curricular.
+2. Verificar que acepte PDF, JPG, JPEG, PNG y WebP.
+3. Intentar subir un `.txt` y confirmar que lo rechaza con un mensaje claro.
+4. Pulsar ?Procesar archivo?.
+5. Revisar diagnóstico.
+6. Verificar que no invente materias si no puede leer el archivo.
+7. Subir un PDF con texto real.
+8. Procesar.
+9. Revisar materias detectadas.
+10. Revisar dependencias detectadas.
+11. Pulsar ?Aprobar?.
+12. Pulsar ?Guardar grafo?.
 
 Resultado esperado:
 
-- PDF escaneado sin OCR: debe mostrar error/diagnóstico claro y bloquear guardar.
+- Foto/captura/PDF escaneado sin OCR: debe mostrar error/diagnóstico claro y bloquear guardar.
 - PDF con texto real: debe detectar materias y permitir guardar.
-- Debe quedar claro qué es procesamiento real y qué depende de OCR local/backend.
+- Archivo inválido: debe rechazarse antes de procesar.
+- Debe quedar claro qu? es procesamiento real y qu? depende de OCR local/backend.
 
 ## 6. Flujo asesor
 
