@@ -1,4 +1,4 @@
-import { Navigate, createBrowserRouter } from 'react-router-dom'
+import { Navigate, createBrowserRouter, createHashRouter } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import {
   AdminPage,
@@ -27,8 +27,7 @@ const basename =
     ? undefined
     : import.meta.env.BASE_URL.replace(/\/$/, '')
 
-export const router = createBrowserRouter(
-  [
+const routes = [
   {
     path: '/',
     element: <Navigate to="/login" replace />,
@@ -199,6 +198,9 @@ export const router = createBrowserRouter(
       },
     ],
   },
-],
-  { basename },
-)
+]
+
+export const router =
+  import.meta.env.VITE_ROUTER_MODE === 'hash'
+    ? createHashRouter(routes)
+    : createBrowserRouter(routes, { basename })

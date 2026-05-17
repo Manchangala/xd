@@ -36,6 +36,7 @@ jobs:
           cp dist/index.html dist/404.html
         env:
           VITE_DEFAULT_DATA_SOURCE: mock
+          VITE_ROUTER_MODE: hash
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
 
       - name: Upload Pages artifact
