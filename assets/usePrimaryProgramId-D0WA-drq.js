@@ -1,0 +1,1 @@
+import{t as e}from"./useQuery-_1miez_W.js";import{t}from"./curriculumService-46uZD9Et.js";function n(n){return e({queryKey:[`primary-program`,n],queryFn:()=>t.getPrimaryProgramId(n),enabled:!!n})}export{n as t};

@@ -1,0 +1,1 @@
+import{D as e,V as t}from"./index-Cm8FKufh.js";var n=t();function r({className:t,...r}){return(0,n.jsx)(`select`,{className:e(`h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-brand-900/40`,t),...r})}export{r as t};

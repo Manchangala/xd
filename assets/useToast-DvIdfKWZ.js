@@ -1,0 +1,1 @@
+import{M as e,ft as t,lt as n}from"./index-Cm8FKufh.js";var r=t(n(),1);function i(){let t=(0,r.useContext)(e);if(!t)throw Error(`useToast debe usarse dentro de ToastProvider`);return t}export{i as t};

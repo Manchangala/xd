@@ -1,0 +1,1 @@
+import{S as e,V as t,x as n}from"./index-Cm8FKufh.js";var r=t(),i=[`aprobada`,`en_curso`,`disponible`,`bloqueada`,`reprobada`,`pendiente`];function a(){return(0,r.jsx)(`div`,{className:`flex flex-wrap gap-2`,children:i.map(t=>(0,r.jsx)(`span`,{className:`rounded-full border px-3 py-1 text-xs font-medium ${n[t]}`,children:e[t]},t))})}export{a as t};
