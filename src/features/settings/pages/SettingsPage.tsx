@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +12,7 @@ import { STORAGE_KEYS } from '@/lib/constants'
 import { getAppSettings } from '@/lib/api/config'
 import { writeStorage } from '@/lib/storage/localStorage'
 import { aiChatService } from '@/features/ai-chat/services/aiChatService'
+import { useAuthStore } from '@/features/auth/store/authStore'
 import type { LlmConnectionStatus } from '@/types/chat'
 import type { AppSettings } from '@/types/settings'
 
@@ -22,7 +24,10 @@ const formatProvider = (provider?: string | null) => {
 }
 
 export function SettingsPage() {
+  const navigate = useNavigate()
   const { pushToast } = useToast()
+  const session = useAuthStore((state) => state.session)
+  const clearSession = useAuthStore((state) => state.clearSession)
   const [settings, setSettings] = useState<AppSettings>(getAppSettings())
   const [connectionDetails, setConnectionDetails] =
     useState<LlmConnectionStatus | null>(null)
@@ -239,7 +244,23 @@ export function SettingsPage() {
       <div className="mt-5 flex flex-wrap gap-3">
         <Button
           onClick={() => {
+            const previousSettings = getAppSettings()
+            const requiresNewLogin =
+              Boolean(session) &&
+              (previousSettings.dataSource !== settings.dataSource ||
+                previousSettings.apiBaseUrl !== settings.apiBaseUrl)
+
             writeStorage(STORAGE_KEYS.settings, settings)
+            if (requiresNewLogin) {
+              clearSession()
+              pushToast({
+                title: 'Configuración guardada',
+                description:
+                  'Cambiamos la fuente de datos o la URL de API. Inicia sesión de nuevo para evitar una sesión mezclada.',
+              })
+              navigate('/login', { replace: true })
+              return
+            }
             pushToast({ title: 'Configuración guardada' })
           }}
         >

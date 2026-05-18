@@ -98,6 +98,23 @@ test('tester: permisos directos no exponen pantallas fuera del rol', async ({ pa
   await expect(page.getByText('Acceso restringido')).toBeVisible()
 })
 
+test('tester: cambiar fuente de datos exige nuevo login y evita sesión mezclada', async ({ page }) => {
+  await page.goto('/login')
+  await page.getByRole('button', { name: 'Iniciar sesión' }).click()
+  await expect(page).toHaveURL(/\/dashboard$/)
+
+  await page.goto('/configuracion')
+  await page.locator('select').nth(1).selectOption('api')
+  await page.locator('input').nth(1).fill(`http://127.0.0.1:65531/api/v1/${Date.now()}`)
+  await page.getByRole('button', { name: 'Guardar configuración' }).click()
+
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByText('Inicia sesión de nuevo')).toBeVisible()
+
+  await page.goto('/dashboard')
+  await expect(page).toHaveURL(/\/login$/)
+})
+
 test('tester: malla soporta búsquedas sin resultados y filtros combinados', async ({ page }) => {
   await loginAs(page, 'student')
   await page.goto('/malla')
