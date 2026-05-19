@@ -19,7 +19,7 @@ import { curriculumService } from '@/features/curriculum/services/curriculumServ
 import { useAuthStore } from '@/features/auth/store/authStore'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/constants'
 import { formatPercentage, normalizeSearchText } from '@/lib/utils'
-import type { CourseStatus } from '@/types/curriculum'
+import type { CourseStatus, CourseWithState } from '@/types/curriculum'
 
 const schema = z
   .object({
@@ -38,9 +38,15 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>
 
+type HistoryCourseRow = CourseWithState & {
+  historyProgramId: string
+  historyProgramName: string
+}
+
 export function ProfilePage() {
   const studentId = useAuthStore((state) => state.session?.studentId) ?? 'student_1'
   const [statusFilter, setStatusFilter] = useState<'all' | CourseStatus>('all')
+  const [programFilter, setProgramFilter] = useState<'all' | string>('all')
   const [search, setSearch] = useState('')
   const queryClient = useQueryClient()
   const { pushToast } = useToast()
@@ -58,11 +64,17 @@ export function ProfilePage() {
     profile.data?.enrollments.find((item) => item.esPrincipal) ?? profile.data?.enrollments[0]
   const secondaryEnrollment = profile.data?.enrollments.find((item) => !item.esPrincipal)
   const primaryProgramId = primaryEnrollment?.programaId
+  const secondaryProgramId = secondaryEnrollment?.programaId
 
-  const graph = useQuery({
+  const primaryGraph = useQuery({
     queryKey: ['graph', studentId, primaryProgramId],
     queryFn: () => curriculumService.getCurriculumGraph(primaryProgramId!, studentId),
     enabled: Boolean(primaryProgramId),
+  })
+  const secondaryGraph = useQuery({
+    queryKey: ['graph', studentId, secondaryProgramId],
+    queryFn: () => curriculumService.getCurriculumGraph(secondaryProgramId!, studentId),
+    enabled: Boolean(secondaryProgramId),
   })
   const progress = useQuery({
     queryKey: ['progress', studentId, primaryProgramId],
@@ -97,30 +109,59 @@ export function ProfilePage() {
   })
 
   const visibleCourses = useMemo(
-    () =>
-      (graph.data?.materias ?? []).filter((course) => {
+    () => {
+      const programRows: HistoryCourseRow[] = [
+        ...(primaryGraph.data?.materias ?? []).map((course) => ({
+          ...course,
+          historyProgramId: primaryGraph.data!.programa.id,
+          historyProgramName: primaryGraph.data!.programa.nombre,
+        })),
+        ...(secondaryGraph.data?.materias ?? []).map((course) => ({
+          ...course,
+          historyProgramId: secondaryGraph.data!.programa.id,
+          historyProgramName: secondaryGraph.data!.programa.nombre,
+        })),
+      ]
+
+      return programRows.filter((course) => {
+        const matchesProgram =
+          programFilter === 'all' ? true : course.historyProgramId === programFilter
         const matchesStatus = statusFilter === 'all' ? true : course.estado === statusFilter
         const normalizedSearch = normalizeSearchText(search)
         const matchesSearch =
           !normalizedSearch ||
           normalizeSearchText(course.nombre).includes(normalizedSearch) ||
           normalizeSearchText(course.codigo).includes(normalizedSearch)
-        return matchesStatus && matchesSearch
-      }),
-    [graph.data?.materias, search, statusFilter],
+        return matchesProgram && matchesStatus && matchesSearch
+      })
+    },
+    [
+      primaryGraph.data,
+      programFilter,
+      search,
+      secondaryGraph.data,
+      statusFilter,
+    ],
   )
 
-  if (profile.isLoading || programs.isLoading || graph.isLoading || progress.isLoading) {
+  if (
+    profile.isLoading ||
+    programs.isLoading ||
+    primaryGraph.isLoading ||
+    secondaryGraph.isLoading ||
+    progress.isLoading
+  ) {
     return <LoadingBlock />
   }
   if (
     profile.isError ||
     programs.isError ||
-    graph.isError ||
+    primaryGraph.isError ||
+    secondaryGraph.isError ||
     progress.isError ||
     !profile.data ||
     !programs.data ||
-    !graph.data ||
+    !primaryGraph.data ||
     !progress.data
   ) {
     return <ErrorState message="No se pudo cargar el perfil académico." />
@@ -128,6 +169,20 @@ export function ProfilePage() {
 
   const primaryProgram = programs.data.find((program) => program.id === primaryEnrollment?.programaId)
   const secondaryProgram = programs.data.find((program) => program.id === secondaryEnrollment?.programaId)
+  const historyProgramOptions = [
+    primaryProgram
+      ? {
+          id: primaryProgram.id,
+          label: `${primaryProgram.nombre} · principal`,
+        }
+      : null,
+    secondaryProgram
+      ? {
+          id: secondaryProgram.id,
+          label: `${secondaryProgram.nombre} · segundo programa`,
+        }
+      : null,
+  ].filter(Boolean) as Array<{ id: string; label: string }>
   const semestresRestantes =
     progress.data.semestresRestantesEstimados ??
     Math.max(
@@ -242,7 +297,10 @@ export function ProfilePage() {
         </Card>
 
         <Card>
-          <SectionTitle title="Historial académico" description="Filtra y ajusta estados desde una interfaz conectada a servicios desacoplados." />
+          <SectionTitle
+            title="Historial académico"
+            description="Historial consolidado de los programas asociados al estudiante. Puedes filtrar por programa, estado o materia."
+          />
           <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
             <Input placeholder="Buscar por código o nombre" value={search} onChange={(event) => setSearch(event.target.value)} />
             <div className="flex flex-wrap gap-2">
@@ -253,20 +311,45 @@ export function ProfilePage() {
               ))}
             </div>
           </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button size="sm" variant={programFilter === 'all' ? 'primary' : 'outline'} onClick={() => setProgramFilter('all')}>
+              Todos los programas
+            </Button>
+            {historyProgramOptions.map((program) => (
+              <Button
+                key={program.id}
+                size="sm"
+                variant={programFilter === program.id ? 'primary' : 'outline'}
+                onClick={() => setProgramFilter(program.id)}
+              >
+                {program.label}
+              </Button>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-slate-500">
+            Mostrando {visibleCourses.length} materias del historial académico
+            {secondaryProgram ? ' consolidado.' : ' del programa principal.'}
+          </p>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="text-slate-500">
                 <tr>
                   <th className="pb-3">Materia</th>
                   <th className="pb-3">Código</th>
+                  <th className="pb-3">Programa</th>
                   <th className="pb-3">Estado</th>
                 </tr>
               </thead>
               <tbody>
                 {visibleCourses.map((course) => (
-                  <tr key={course.id} className="border-t border-slate-100 dark:border-slate-800">
+                  <tr key={`${course.historyProgramId}-${course.id}`} className="border-t border-slate-100 dark:border-slate-800">
                     <td className="py-3">{course.nombre}</td>
                     <td className="py-3">{course.codigo}</td>
+                    <td className="py-3">
+                      <Badge className="border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                        {course.historyProgramName}
+                      </Badge>
+                    </td>
                     <td className="py-3">
                       <div className="flex min-w-48 items-center gap-2">
                         <Badge className={STATUS_COLORS[course.estado]}>{STATUS_LABELS[course.estado]}</Badge>

@@ -25,9 +25,9 @@ export function RecoverPasswordPage() {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      email: 'estudiante@curriculapath.edu',
+      email: '',
       code: '',
-      newPassword: 'demo123',
+      newPassword: '',
     },
   })
 
@@ -41,7 +41,6 @@ export function RecoverPasswordPage() {
     try {
       const result = await authService.requestPasswordRecovery(email)
       setDemoCode(result.demoCode)
-      form.setValue('code', result.demoCode, { shouldDirty: true, shouldValidate: true })
       pushToast({ title: 'Código generado', description: result.message })
     } catch (error) {
       pushToast({
@@ -93,7 +92,7 @@ export function RecoverPasswordPage() {
           </Button>
           {demoCode ? (
             <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
-              <p>Código demo visible y precargado para validar el flujo:</p>
+              <p>Código visible para validar el flujo de recuperación:</p>
               <strong className="mt-2 block break-all font-mono text-base">{demoCode}</strong>
             </div>
           ) : null}

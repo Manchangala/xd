@@ -40,8 +40,8 @@ export function LoginPage() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      email: roleDefaultEmail.student,
-      password: 'demo123',
+      email: '',
+      password: '',
       role: 'student',
     },
   })
@@ -104,25 +104,17 @@ export function LoginPage() {
         <Card className="w-full max-w-md p-6 md:p-8">
           <div className="mb-7">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-700">
-              Acceso demo
+              Acceso
             </p>
             <h2 className="mt-2 text-3xl font-bold">Iniciar sesión</h2>
             <p className="mt-2 text-sm text-slate-500">
-              Cambia de rol para recorrer la experiencia de estudiante, administrador o asesor.
+              Ingresa con una cuenta académica o usa una cuenta de prueba para recorrer la plataforma.
             </p>
           </div>
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div>
-              <label className="mb-2 block text-sm font-medium">Rol demo</label>
-              <Select
-                {...register('role', {
-                  onChange: (event) =>
-                    setValue(
-                      'email',
-                      roleDefaultEmail[event.target.value as UserRole],
-                    ),
-                })}
-              >
+              <label className="mb-2 block text-sm font-medium">Rol</label>
+              <Select {...register('role')}>
                 <option value="student">Estudiante</option>
                 <option value="admin">Administrador</option>
                 <option value="advisor">Asesor</option>
@@ -157,10 +149,31 @@ export function LoginPage() {
             </Link>
           </div>
           <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-xs text-slate-500 dark:bg-slate-800">
-            <p className="font-semibold">Credenciales demo visibles</p>
-            <p className="mt-2">Rol actual: {ROLE_LABELS[role]}</p>
-            <p>Email: {roleDefaultEmail[role]}</p>
-            <p>Contraseña: demo123</p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold">Cuentas de prueba</p>
+                <p className="mt-2">Rol seleccionado: {ROLE_LABELS[role]}</p>
+                <p>Email: {roleDefaultEmail[role]}</p>
+                <p>Contraseña: demo123</p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setValue('email', roleDefaultEmail[role], {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                  setValue('password', 'demo123', {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }}
+              >
+                Usar
+              </Button>
+            </div>
           </div>
         </Card>
       </section>

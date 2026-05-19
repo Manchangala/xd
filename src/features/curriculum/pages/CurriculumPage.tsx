@@ -11,10 +11,10 @@ import { CurriculumGraph } from '@/components/graph/CurriculumGraph'
 import { GraphLegend } from '@/components/graph/GraphLegend'
 import { GraphToolbar } from '@/components/graph/GraphToolbar'
 import { curriculumService } from '@/features/curriculum/services/curriculumService'
-import { usePrimaryProgramId } from '@/features/curriculum/hooks/usePrimaryProgramId'
 import { useAuthStore } from '@/features/auth/store/authStore'
 import { normalizeSearchText } from '@/lib/utils'
 import type { CourseStatus } from '@/types/curriculum'
+import { Select } from '@/components/ui/select'
 
 export function CurriculumPage() {
   const studentId = useAuthStore((state) => state.session?.studentId) ?? 'student_1'
@@ -26,12 +26,45 @@ export function CurriculumPage() {
   const [semester, setSemester] = useState('all')
   const [status, setStatus] = useState('all')
   const [showDependents, setShowDependents] = useState(false)
-  const primaryProgram = usePrimaryProgramId(studentId)
+  const [selectedProgramId, setSelectedProgramId] = useState<string>()
+
+  const profile = useQuery({
+    queryKey: ['profile', studentId],
+    queryFn: () => curriculumService.getStudentProfile(studentId),
+  })
+
+  const programOptions = useMemo(() => {
+    const enrollments = profile.data?.enrollments ?? []
+    return enrollments
+      .map((enrollment) => {
+        const program = profile.data?.programs.find((item) => item.id === enrollment.programaId)
+        if (!program) return null
+        return {
+          id: program.id,
+          label: enrollment.esPrincipal
+            ? `${program.nombre} · principal`
+            : `${program.nombre} · segundo programa`,
+          programName: program.nombre,
+          isPrimary: enrollment.esPrincipal,
+        }
+      })
+      .filter(Boolean) as Array<{
+      id: string
+      label: string
+      programName: string
+      isPrimary: boolean
+    }>
+  }, [profile.data])
+
+  const activeProgramId =
+    selectedProgramId ??
+    programOptions.find((program) => program.isPrimary)?.id ??
+    programOptions[0]?.id
 
   const graph = useQuery({
-    queryKey: ['graph', studentId, primaryProgram.data],
-    queryFn: () => curriculumService.getCurriculumGraph(primaryProgram.data!, studentId),
-    enabled: Boolean(primaryProgram.data),
+    queryKey: ['graph', studentId, activeProgramId],
+    queryFn: () => curriculumService.getCurriculumGraph(activeProgramId!, studentId),
+    enabled: Boolean(activeProgramId),
   })
   const updateStatus = useMutation({
     mutationFn: ({
@@ -64,8 +97,8 @@ export function CurriculumPage() {
     )
   }, [graph.data?.materias, search, semester, status])
 
-  if (primaryProgram.isLoading || graph.isLoading) return <LoadingBlock />
-  if (primaryProgram.isError || graph.isError || !graph.data) {
+  if (profile.isLoading || graph.isLoading) return <LoadingBlock />
+  if (profile.isError || graph.isError || !graph.data) {
     return <ErrorState message="No se pudo cargar la malla curricular." />
   }
 
@@ -78,9 +111,38 @@ export function CurriculumPage() {
       <PageHeader
         eyebrow="Malla"
         title="Malla curricular interactiva"
-        description="Grafo navegable con estados, filtros, dependencias y acciones conectadas a servicios desacoplados."
+        description="Grafo navegable por programa académico, con estados, filtros, dependencias y acciones conectadas a servicios desacoplados."
       />
       <div className="space-y-4">
+        {programOptions.length > 1 ? (
+          <Card className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                Programa visualizado
+              </p>
+              <p className="text-sm text-slate-500">
+                Estás viendo la malla de {graph.data.programa.nombre}. Cambia de programa para revisar tu doble titulación.
+              </p>
+            </div>
+            <Select
+              className="md:max-w-sm"
+              value={activeProgramId}
+              onChange={(event) => {
+                setSelectedProgramId(event.target.value)
+                setSelectedId(undefined)
+                setSearch('')
+                setSemester('all')
+                setStatus('all')
+              }}
+            >
+              {programOptions.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {program.label}
+                </option>
+              ))}
+            </Select>
+          </Card>
+        ) : null}
         <GraphToolbar
           search={search}
           semester={semester}
@@ -92,7 +154,7 @@ export function CurriculumPage() {
         <GraphLegend />
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
           <span>
-            Mostrando {filteredCourses.length} de {graph.data.materias.length} materias
+            Mostrando {filteredCourses.length} de {graph.data.materias.length} materias de {graph.data.programa.nombre}
           </span>
           {(search || semester !== 'all' || status !== 'all') && (
             <Button

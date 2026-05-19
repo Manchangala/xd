@@ -46,13 +46,13 @@ export function RegisterPage() {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      nombre: 'Nuevo Estudiante CurriculaPath',
-      email: 'nuevo.estudiante@curriculapath.edu',
-      password: 'demo123',
-      codigoEstudiantil: '202699001',
+      nombre: '',
+      email: '',
+      password: '',
+      codigoEstudiantil: '',
       semestreActual: 1,
       cargaMaximaCreditos: 20,
-      programaPrincipalId: 'prog_systems',
+      programaPrincipalId: '',
       programaSecundarioId: '',
     },
   })
@@ -141,10 +141,12 @@ export function RegisterPage() {
               <div>
                 <label className="mb-2 block text-sm font-medium">Programa principal</label>
                 <Select {...form.register('programaPrincipalId')}>
+                  <option value="">Selecciona un programa</option>
                   {programs.data.filter((program) => program.activo).map((program) => (
                     <option key={program.id} value={program.id}>{program.nombre}</option>
                   ))}
                 </Select>
+                {form.formState.errors.programaPrincipalId ? <p className="mt-1 text-sm text-rose-600">{form.formState.errors.programaPrincipalId.message}</p> : null}
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium">Segundo programa opcional</label>

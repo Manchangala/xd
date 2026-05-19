@@ -10,7 +10,7 @@ export default defineConfig({
   base,
   plugins: [react()],
   server: {
-    allowedHosts: ['.loca.lt', '.localtunnel.me'],
+    allowedHosts: ['.loca.lt', '.localtunnel.me', '.trycloudflare.com'],
     proxy: {
       '/api': {
         target: apiProxyTarget,
